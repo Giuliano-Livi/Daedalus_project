@@ -6,6 +6,7 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GUI_PID_FILE="/tmp/asp_gz_gui.pid"
 GUI_LOG="/tmp/asp_gz_gui.log"
+GUI_CONFIG="gazebo/gui/gui.config"   # layout GUI con la finestra della depth camera
 WORLD_FILE="gazebo/worlds/warehouse_px4.sdf"
 WAIT_TIMEOUT=180
 
@@ -90,9 +91,16 @@ start_gui() {
     log "GUI gia' attiva."; return 0
   fi
   setsid nohup env -u GTK_EXE_PREFIX -u GTK_MODULES -u GTK_PATH -u GIO_MODULE_DIR \
-    gz sim -g >"$GUI_LOG" 2>&1 &
+    gz sim -g --gui-config "$PROJECT_DIR/$GUI_CONFIG" >"$GUI_LOG" 2>&1 &
   echo $! > "$GUI_PID_FILE"
   log "GUI avviata (log: $GUI_LOG)."
+}
+
+allow_x11() {
+  # finestre dal container dev (es. RViz2): consente l'X server solo a root locale
+  if [[ -n "${DISPLAY:-}" ]] && command -v xhost >/dev/null; then
+    xhost +SI:localuser:root >/dev/null 2>&1 || warn "xhost fallito: RViz2 nel container non potra' aprire finestre."
+  fi
 }
 
 stop_gui() {
@@ -109,6 +117,7 @@ cmd_start() {
   wait_for_world
   wait_for_vehicle
   (( GUI )) && start_gui
+  allow_x11
   if (( OPEN_SHELL )); then
     log "Apro la shell ROS 2 (container dev). Per fermare tutto: scripts/start.sh stop"
     exec docker compose run --rm dev bash

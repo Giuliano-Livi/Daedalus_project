@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Project override of PX4's x500_depth (mounted over the image's model by docker-compose.yml):
+  x500 + OAK-D Lite body with a colour camera + depth camera pair (640x480, same pose and
+  FOV, so the images are pixel-aligned; colour 15 Hz, depth 30 Hz) instead of the stock separate RGB
+  (IMX214, 1920x1080) and depth (StereoOV7251) sensors.
+  Colour clip 0.1-100 m; depth clip 0.2-19.1 m (stock StereoOV7251 range).
+  Topics: see warehouse_bringup/launch/sim_bringup.launch.py.
+-->
+<sdf version='1.9'>
+  <model name='x500_depth'>
+    <include merge='true'>
+      <uri>x500</uri>
+    </include>
+    <link name="camera_link">
+      <pose>.12 .03 .242 0 0 0</pose>
+      <inertial>
+        <pose>0.00358 -0.03 .014 0 0 0</pose>
+        <mass>0.061</mass>
+        <inertia>
+          <ixx>0.0000460804</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000055421</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000436519</izz>
+        </inertia>
+      </inertial>
+      <visual name="OakD-Lite/visual">
+        <geometry>
+          <mesh>
+            <uri>model://OakD-Lite/meshes/OakDLite.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="OakD-Lite/collision">
+        <pose>0.00358 -0.03 .014 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.0175 0.091 0.028</size>
+          </box>
+        </geometry>
+      </collision>
+      <!-- Colour + depth at the same pose, resolution and FOV -> pixel-aligned images
+           (same intrinsics). Used instead of one rgbd_camera, whose colour image renders
+           black in the headless PX4 image (gz-rendering 8.2.3). -->
+      <sensor name="color_camera" type="camera">
+        <gz_frame_id>camera_link</gz_frame_id>
+        <pose>0.01233 -0.03 .01878 0 0 0</pose>
+        <camera>
+          <horizontal_fov>1.274</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>100</far>
+          </clip>
+        </camera>
+        <always_on>1</always_on>
+        <!-- 15 Hz: at 30 Hz colour + GUI saturate the integrated GPU (RTF ~0.6) -->
+        <update_rate>15</update_rate>
+        <visualize>true</visualize>
+      </sensor>
+      <sensor name="depth_camera" type="depth_camera">
+        <gz_frame_id>camera_link</gz_frame_id>
+        <pose>0.01233 -0.03 .01878 0 0 0</pose>
+        <camera>
+          <horizontal_fov>1.274</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R_FLOAT32</format>
+          </image>
+          <clip>
+            <near>0.2</near>
+            <far>19.1</far>
+          </clip>
+        </camera>
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+        <visualize>true</visualize>
+      </sensor>
+    </link>
+    <joint name="CameraJoint" type="fixed">
+      <parent>base_link</parent>
+      <child>camera_link</child>
+      <pose relative_to="base_link">.12 .03 .242 0 0 0</pose>
+    </joint>
+  </model>
+</sdf>

@@ -20,6 +20,8 @@ services:
       - ./gazebo/models/warehouse_line_2:/opt/px4-gazebo/share/gz/models/warehouse_line_2:ro
       - ./gazebo/models/warehouse_line_3:/opt/px4-gazebo/share/gz/models/warehouse_line_3:ro
       - ./gazebo/models/warehouse_zone_4:/opt/px4-gazebo/share/gz/models/warehouse_zone_4:ro
+      # drone: depth-only override of PX4's stock x500_depth (RGB camera removed)
+      - ./gazebo/models/x500_depth:/opt/px4-gazebo/share/gz/models/x500_depth:ro
     devices:
       - /dev/dri:/dev/dri
 
@@ -29,8 +31,14 @@ services:
     ipc: host
     environment:
       GZ_PARTITION: warehouse
+      # finestre (RViz2) sul desktop dell'host
+      DISPLAY: ${DISPLAY:-:0}
+      QT_X11_NO_MITSHM: "1"
     volumes:
       - ./ros2_ws/src:/ws/src
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    devices:
+      - /dev/dri:/dev/dri
     working_dir: /ws
     stdin_open: true
     tty: true

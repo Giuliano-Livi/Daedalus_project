@@ -1,0 +1,82 @@
+# RViz2 view of the drone's cameras (sim_bringup.launch.py pointcloud:=true).
+# Fixed frame = camera_link (the frame of the Gazebo depth camera); points coloured by
+# distance in front of the camera (X axis).
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Reference Frame: <Fixed Frame>
+      Cell Size: 1
+      Plane Cell Count: 20
+      Color: 160; 160; 164
+    - Class: rviz_default_plugins/Axes
+      Name: Camera frame
+      Enabled: true
+      Reference Frame: <Fixed Frame>
+      Length: 0.5
+      Radius: 0.03
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Depth point cloud
+      Enabled: true
+      Topic:
+        Value: /camera/depth/points
+        Depth: 5
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+      Style: Points
+      Size (Pixels): 2
+      Color Transformer: AxisColor
+      Axis: X
+      Autocompute Value Bounds: true
+      Use Fixed Frame: true
+      Decay Time: 0
+      Queue Size: 2
+    - Class: rviz_default_plugins/Image
+      Name: Color image
+      Enabled: true
+      Topic:
+        Value: /camera/color/image_raw
+        Depth: 5
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+    - Class: rviz_default_plugins/Image
+      Name: Depth image
+      Enabled: true
+      Topic:
+        Value: /camera/depth/image_raw
+        Depth: 5
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+      # fixed range = camera clip (0.2 - 19.1 m): auto-normalize breaks on the +inf pixels
+      Normalize Range: false
+      Min Value: 0
+      Max Value: 19.1
+  Global Options:
+    Fixed Frame: camera_link
+    Background Color: 48; 48; 48
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Interact
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Target Frame: <Fixed Frame>
+      Focal Point:
+        X: 6
+        Y: 0
+        Z: 0
+      Distance: 16
+      Pitch: 0.45
+      Yaw: 3.4
+Window Geometry:
+  Width: 1500
+  Height: 950

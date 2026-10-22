@@ -4,7 +4,7 @@ services:
     network_mode: host
     environment:
       PX4_SIM_MODEL: gz_x500_depth
-      PX4_GZ_MODEL_POSE: ${PX4_GZ_MODEL_POSE:--19,35,0,0,0,0}
+      PX4_GZ_MODEL_POSE: ${PX4_GZ_MODEL_POSE:--10.2,-25,0,0,0,1.5708}
       PX4_GZ_WORLD: warehouse_px4
       PX4_PARAM_COM_RC_IN_MODE: "4"
       PX4_PARAM_COM_ARM_ODID: "0"
@@ -15,15 +15,11 @@ services:
     tty: true
     volumes:
       - ./gazebo/worlds/warehouse_px4.sdf:/opt/px4-gazebo/share/gz/worlds/warehouse_px4.sdf:ro
-      - ./gazebo/models/aws_robomaker_warehouse_Bucket_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_Bucket_01:ro
-      - ./gazebo/models/aws_robomaker_warehouse_ClutteringA_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_ClutteringA_01:ro
-      - ./gazebo/models/aws_robomaker_warehouse_ClutteringC_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_ClutteringC_01:ro
-      - ./gazebo/models/aws_robomaker_warehouse_ClutteringD_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_ClutteringD_01:ro
       - ./gazebo/models/aws_robomaker_warehouse_GroundB_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_GroundB_01:ro
-      - ./gazebo/models/aws_robomaker_warehouse_ShelfD_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_ShelfD_01:ro
-      - ./gazebo/models/aws_robomaker_warehouse_ShelfE_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_ShelfE_01:ro
-      - ./gazebo/models/aws_robomaker_warehouse_ShelfF_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_ShelfF_01:ro
-      - ./gazebo/models/aws_robomaker_warehouse_TrashCanC_01:/opt/px4-gazebo/share/gz/models/aws_robomaker_warehouse_TrashCanC_01:ro
+      - ./gazebo/models/warehouse_line_1:/opt/px4-gazebo/share/gz/models/warehouse_line_1:ro
+      - ./gazebo/models/warehouse_line_2:/opt/px4-gazebo/share/gz/models/warehouse_line_2:ro
+      - ./gazebo/models/warehouse_line_3:/opt/px4-gazebo/share/gz/models/warehouse_line_3:ro
+      - ./gazebo/models/warehouse_zone_4:/opt/px4-gazebo/share/gz/models/warehouse_zone_4:ro
     devices:
       - /dev/dri:/dev/dri
 

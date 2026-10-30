@@ -95,19 +95,19 @@ source install/setup.bash
 Per avviare i bridge dei sensori (IMU e clock) e il nodo ROS, lasciando il drone in attesa dei comandi:
 
 ```bash
-ros2 launch warehouse_bringup sim_bringup.launch.py
+ros2 launch daedalus_control sim_bringup.launch.py
 ```
 
 Per includere anche i bridge della camera:
 
 ```bash
-ros2 launch warehouse_bringup sim_bringup.launch.py camera:=true
+ros2 launch daedalus_control sim_bringup.launch.py camera:=true
 ```
 
 Per provare il decollo automatico a un metro, avviare invece:
 
 ```bash
-ros2 launch warehouse_bringup sim_bringup.launch.py takeoff:=true
+ros2 launch daedalus_control sim_bringup.launch.py takeoff:=true
 ```
 
 Il nodo `takeoff_1m` acquisisce la posizione iniziale, passa in modalità Offboard, arma il veicolo e mantiene il setpoint a un metro sopra il punto di partenza. **Usare `takeoff:=true` solo con la simulazione PX4 avviata da questo progetto; non collegare questa prova a un drone reale.** Per attivare insieme camera e decollo: `camera:=true takeoff:=true`.
@@ -188,5 +188,5 @@ Lo script `start` apre una shell ROS per impostazione predefinita. L'opzione `--
 - `docker-compose.yml` orchestra PX4/Gazebo, il container ROS di sviluppo e l'agente Micro XRCE-DDS.
 - `docker/ros/Dockerfile` prepara l'immagine basata su ROS 2 Humble e installa Gazebo Harmonic e le dipendenze PX4/ROS.
 - `gazebo/worlds/warehouse_px4.sdf` e `gazebo/models/` contengono il mondo e i modelli del magazzino.
-- `ros2_ws/src/warehouse_bringup/` contiene il launch file e il nodo di decollo a un metro.
+- `ros2_ws/src/daedalus_control/` contiene il launch file e il nodo di decollo a un metro.
 - `scripts/start.sh` gestisce avvio, stato, GUI e arresto dell'ambiente.

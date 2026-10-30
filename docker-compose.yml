@@ -36,6 +36,8 @@ services:
       QT_X11_NO_MITSHM: "1"
     volumes:
       - ./ros2_ws/src:/ws/src
+      # immagini salvate da image_saver, visibili sull'host in ./images
+      - ./images:/ws/images
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
     devices:
       - /dev/dri:/dev/dri

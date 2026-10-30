@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import setup
 
-package_name = 'warehouse_bringup'
+package_name = 'daedalus_control'
 
 setup(
     name=package_name,
@@ -13,6 +13,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
         (os.path.join('share', package_name, 'rviz'), glob('rviz/*.rviz')),
+        (os.path.join('share', package_name, 'maps'), glob('maps/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -22,7 +23,10 @@ setup(
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
-            'takeoff_1m = warehouse_bringup.takeoff_1m:main',
+            'takeoff_1m = daedalus_control.takeoff_1m:main',
+            'offboard_control = daedalus_control.offboard_control:main',
+            'trajectory_generator = daedalus_control.trajectory_generator:main',
+            'image_saver = daedalus_control.image_saver:main',
         ],
     },
 )

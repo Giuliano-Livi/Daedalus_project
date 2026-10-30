@@ -51,7 +51,7 @@ def _setup(context):
 
     if sim and pointcloud:
         # RViz2 con point cloud, immagine colore e depth (finestra sul desktop host, vedi docker-compose dev)
-        rviz_cfg = os.path.join(get_package_share_directory('warehouse_bringup'), 'rviz', 'depth_camera.rviz')
+        rviz_cfg = os.path.join(get_package_share_directory('daedalus_control'), 'rviz', 'depth_camera.rviz')
         nodes.append(Node(
             package='rviz2',
             executable='rviz2',
@@ -62,7 +62,7 @@ def _setup(context):
 
     if takeoff:
         nodes.append(Node(
-            package='warehouse_bringup',
+            package='daedalus_control',
             executable='takeoff_1m',
             name='takeoff_1m',
             output='screen',

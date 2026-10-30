@@ -5,7 +5,7 @@
   FOV, so the images are pixel-aligned; colour 15 Hz, depth 30 Hz) instead of the stock separate RGB
   (IMX214, 1920x1080) and depth (StereoOV7251) sensors.
   Colour clip 0.1-100 m; depth clip 0.2-19.1 m (stock StereoOV7251 range).
-  Topics: see warehouse_bringup/launch/sim_bringup.launch.py.
+  Topics: see daedalus_control/launch/sim_bringup.launch.py.
 -->
 <sdf version='1.9'>
   <model name='x500_depth'>

@@ -23,10 +23,9 @@ setup(
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
-            'takeoff_1m = daedalus_control.takeoff_1m:main',
             'offboard_control = daedalus_control.offboard_control:main',
             'trajectory_generator = daedalus_control.trajectory_generator:main',
-            'image_saver = daedalus_control.image_saver:main',
+            'px4_odometry = daedalus_control.px4_odometry:main',
         ],
     },
 )

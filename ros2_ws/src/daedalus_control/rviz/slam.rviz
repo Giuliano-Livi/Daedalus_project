@@ -1,0 +1,119 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+      Splitter Ratio: 0.5
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 60
+      Reference Frame: <Fixed Frame>
+      Color: 160; 160; 164
+      Alpha: 0.3
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Names: false
+      Show Axes: true
+      Marker Scale: 0.6
+      Frames:
+        All Enabled: false
+        base_link:
+          Value: true
+        map:
+          Value: true
+        odom:
+          Value: true
+      Value: true
+    # occupancy grid 2D costruita da RTAB-Map
+    - Class: rviz_default_plugins/Map
+      Name: Grid map
+      Enabled: true
+      Topic:
+        Value: /rtabmap/grid_prob_map
+        Depth: 1
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        History Policy: Keep Last
+      Color Scheme: map
+      Alpha: 0.6
+      Draw Behind: true
+      Value: true
+    # mappa 3D (keyframe ottimizzati), colorata per altezza
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Cloud map
+      Enabled: true
+      Topic:
+        Value: /rtabmap/cloud_map
+        Depth: 1
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        History Policy: Keep Last
+      Style: Points
+      Size (Pixels): 2
+      Color Transformer: AxisColor
+      Axis: Z
+      Autocompute Value Bounds: true
+      Use Fixed Frame: true
+      Decay Time: 0
+      Value: true
+    # traiettoria ottimizzata dal graph SLAM
+    - Class: rviz_default_plugins/Path
+      Name: SLAM path
+      Enabled: true
+      Topic:
+        Value: /rtabmap/mapPath
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Reliable
+        History Policy: Keep Last
+      Line Style: Lines
+      Color: 25; 255; 0
+      Alpha: 1
+      Value: true
+    - Class: rviz_default_plugins/Image
+      Name: Colour camera
+      Enabled: true
+      Topic:
+        Value: /camera/color/image_raw
+        Depth: 1
+        Durability Policy: Volatile
+        Reliability Policy: Best Effort
+        History Policy: Keep Last
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Current View
+      Target Frame: base_link
+      Distance: 25
+      Pitch: 0.9
+      Yaw: 3.6
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Value: Orbit (rviz)
+Window Geometry:
+  Width: 1400
+  Height: 900

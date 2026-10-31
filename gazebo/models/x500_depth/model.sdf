@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Project override of PX4's x500_depth (mounted over the image's model by docker-compose.yml):
-  x500 + OAK-D Lite body with a colour camera + depth camera pair (640x480, same pose and
-  FOV, so the images are pixel-aligned; colour 15 Hz, depth 30 Hz) instead of the stock separate RGB
-  (IMX214, 1920x1080) and depth (StereoOV7251) sensors.
-  Colour clip 0.1-100 m; depth clip 0.2-19.1 m (stock StereoOV7251 range).
+  x500 + ZED 2i stereo camera, simulated as the output of the ZED SDK, i.e. a rectified
+  colour image (left lens) + an ideal depth map pixel-aligned with it (same pose, resolution
+  and FOV). The real stereo pair is not simulated: depth noise is meant to be added later by a
+  ROS node on top of this ideal depth.
+  ZED 2i (datasheet): 175.25 x 30.25 x 43.1 mm, 166 g, baseline 120 mm, depth 0.3-20 m.
+  Resolution VGA 672x376 (lightest ZED mode), HFOV ~101 deg (rectified images; the 110 deg of
+  the datasheet is the unrectified lens), colour + depth 15 Hz.
+  Sensor names are kept (color_camera / depth_camera), so the bridge topics don't change.
   Topics: see daedalus_control/launch/sim_bringup.launch.py.
 -->
 <sdf version='1.9'>
@@ -12,46 +16,52 @@
     <include merge='true'>
       <uri>x500</uri>
     </include>
+    <!-- camera_link = centre of the ZED 2i body, on the drone's centre line, above the top plate -->
     <link name="camera_link">
-      <pose>.12 .03 .242 0 0 0</pose>
+      <pose>.12 0 .256 0 0 0</pose>
       <inertial>
-        <pose>0.00358 -0.03 .014 0 0 0</pose>
-        <mass>0.061</mass>
+        <mass>0.166</mass>
+        <!-- solid box 0.030 x 0.175 x 0.043 m -->
         <inertia>
-          <ixx>0.0000460804</ixx>
+          <ixx>0.0004492</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0000055421</iyy>
+          <iyy>0.0000380</iyy>
           <iyz>0</iyz>
-          <izz>0.0000436519</izz>
+          <izz>0.0004361</izz>
         </inertia>
       </inertial>
-      <visual name="OakD-Lite/visual">
-        <geometry>
-          <mesh>
-            <uri>model://OakD-Lite/meshes/OakDLite.dae</uri>
-          </mesh>
-        </geometry>
-      </visual>
-      <collision name="OakD-Lite/collision">
-        <pose>0.00358 -0.03 .014 0 0 0</pose>
+      <visual name="ZED2i/visual">
         <geometry>
           <box>
-            <size>0.0175 0.091 0.028</size>
+            <size>0.030 0.175 0.043</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.15 0.15 0.15 1</diffuse>
+          <specular>0.3 0.3 0.3 1</specular>
+        </material>
+      </visual>
+      <collision name="ZED2i/collision">
+        <geometry>
+          <box>
+            <size>0.030 0.175 0.043</size>
           </box>
         </geometry>
       </collision>
-      <!-- Colour + depth at the same pose, resolution and FOV -> pixel-aligned images
-           (same intrinsics). Used instead of one rgbd_camera, whose colour image renders
-           black in the headless PX4 image (gz-rendering 8.2.3). -->
+      <!-- Colour + depth at the left lens (front face, +60 mm = half baseline, like the ZED SDK
+           reference frame), same resolution and FOV -> pixel-aligned images (same intrinsics).
+           Two sensors instead of one rgbd_camera, whose colour image renders black in the
+           headless PX4 image (gz-rendering 8.2.3). -->
       <sensor name="color_camera" type="camera">
-        <gz_frame_id>camera_link</gz_frame_id>
-        <pose>0.01233 -0.03 .01878 0 0 0</pose>
+        <gz_frame_id>camera_optical_frame</gz_frame_id>
+        <pose>0.015 0.06 0 0 0 0</pose>
         <camera>
-          <horizontal_fov>1.274</horizontal_fov>
+          <horizontal_fov>1.77</horizontal_fov>
           <image>
-            <width>640</width>
-            <height>480</height>
+            <width>672</width>
+            <height>376</height>
             <format>R8G8B8</format>
           </image>
           <clip>
@@ -65,29 +75,30 @@
         <visualize>true</visualize>
       </sensor>
       <sensor name="depth_camera" type="depth_camera">
-        <gz_frame_id>camera_link</gz_frame_id>
-        <pose>0.01233 -0.03 .01878 0 0 0</pose>
+        <gz_frame_id>camera_optical_frame</gz_frame_id>
+        <pose>0.015 0.06 0 0 0 0</pose>
         <camera>
-          <horizontal_fov>1.274</horizontal_fov>
+          <horizontal_fov>1.77</horizontal_fov>
           <image>
-            <width>640</width>
-            <height>480</height>
+            <width>672</width>
+            <height>376</height>
             <format>R_FLOAT32</format>
           </image>
           <clip>
-            <near>0.2</near>
-            <far>19.1</far>
+            <near>0.3</near>
+            <far>20</far>
           </clip>
         </camera>
         <always_on>1</always_on>
-        <update_rate>30</update_rate>
+        <!-- same rate as colour: the ZED SDK outputs one depth map per grabbed frame -->
+        <update_rate>15</update_rate>
         <visualize>true</visualize>
       </sensor>
     </link>
     <joint name="CameraJoint" type="fixed">
       <parent>base_link</parent>
       <child>camera_link</child>
-      <pose relative_to="base_link">.12 .03 .242 0 0 0</pose>
+      <pose relative_to="base_link">.12 0 .256 0 0 0</pose>
     </joint>
   </model>
 </sdf>

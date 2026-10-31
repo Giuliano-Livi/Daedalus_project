@@ -11,7 +11,6 @@ def _setup(context):
     world = LaunchConfiguration('world').perform(context)
     model = LaunchConfiguration('model').perform(context)
     sim = LaunchConfiguration('sim').perform(context).lower() == 'true'
-    takeoff = LaunchConfiguration('takeoff').perform(context).lower() == 'true'
     camera = LaunchConfiguration('camera').perform(context).lower() == 'true'
     pointcloud = LaunchConfiguration('pointcloud').perform(context).lower() == 'true'
     camera = camera or pointcloud
@@ -19,7 +18,7 @@ def _setup(context):
     nodes = []
     if sim:
         link = f'/world/{world}/model/{model}/link'
-        # OAK-D Lite: colour + depth camera pair, pixel-aligned (gazebo/models/x500_depth)
+        # ZED 2i (SDK output): colour + depth camera pair, pixel-aligned (gazebo/models/x500_depth)
         color = f'{link}/camera_link/sensor/color_camera'
         depth = f'{link}/camera_link/sensor/depth_camera'
         imu = f'{link}/base_link/sensor/imu_sensor/imu'
@@ -49,6 +48,26 @@ def _setup(context):
             output='screen',
         ))
 
+    if sim and camera:
+        # TF statiche della ZED 2i (gazebo/models/x500_depth/model.sdf): camera_link = lente sinistra
+        # (montaggio .12 0 .256 + sensore .015 .06 0); camera_optical_frame = convenzione ottica
+        # (z avanti, x destra, y giu'), il frame_id di immagini e camera_info
+        static_tfs = [
+            ['--x', '0.135', '--y', '0.06', '--z', '0.256',
+             '--frame-id', 'base_link', '--child-frame-id', 'camera_link'],
+            ['--roll', '-1.5707963', '--yaw', '-1.5707963',
+             '--frame-id', 'camera_link', '--child-frame-id', 'camera_optical_frame'],
+        ]
+        for i, tf_args in enumerate(static_tfs):
+            nodes.append(Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name=f'camera_tf_{i}',
+                arguments=tf_args,
+                parameters=[{'use_sim_time': True}],
+                output='screen',
+            ))
+
     if sim and pointcloud:
         # RViz2 con point cloud, immagine colore e depth (finestra sul desktop host, vedi docker-compose dev)
         rviz_cfg = os.path.join(get_package_share_directory('daedalus_control'), 'rviz', 'depth_camera.rviz')
@@ -60,14 +79,6 @@ def _setup(context):
             output='screen',
         ))
 
-    if takeoff:
-        nodes.append(Node(
-            package='daedalus_control',
-            executable='takeoff_1m',
-            name='takeoff_1m',
-            output='screen',
-        ))
-
     return nodes
 
 
@@ -76,7 +87,6 @@ def generate_launch_description():
         DeclareLaunchArgument('sim', default_value='true'),
         DeclareLaunchArgument('world', default_value='warehouse_px4'),
         DeclareLaunchArgument('model', default_value='x500_depth_0'),
-        DeclareLaunchArgument('takeoff', default_value='false'),
         DeclareLaunchArgument('camera', default_value='false'),
         # point cloud della depth camera in RViz2 (attiva anche i bridge della camera)
         DeclareLaunchArgument('pointcloud', default_value='false'),

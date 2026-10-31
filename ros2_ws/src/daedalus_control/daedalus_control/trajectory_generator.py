@@ -15,7 +15,7 @@ class TrajectoryGenerator(Node):
         super().__init__('trajectory_generator')
         self.x_setpoint = 0
         self.current_position = [0,0,0]
-        self.target_pos = [15,45,3]
+        self.target_pos = [[0,54.5,3], [7.6, 54.5, 3], [7.6, -4.5, 3], [16.2, -4.5, 3], [16.2, 54.5, 3], [0,54.5,3], [0,0,3]]
         self.des_yaw = math.pi/2
 
         # 2D occupancy grid from scripts/gen_occupancy_grid.py: 1 = occupied
@@ -28,7 +28,7 @@ class TrajectoryGenerator(Node):
         self.turn_cost = 2.0                # A* extra cost (m) for every change of direction, 0 = shortest path
         self.inflation = 4                  # safety margin: cells added around every obstacle, 0 = none
         self.center_dist = 4.5              # m: closer than this to an obstacle, a step costs extra (>= half the widest lane)
-        self.center_weight = 0.5            # extra cost per step for each m closer than center_dist, 0 = off
+        self.center_weight = 0.3            # extra cost per step for each m closer than center_dist, 0 = off
 
         # clearance: distance (m) from every cell to the nearest obstacle cell of the raw map,
         # computed one row at a time (all obstacle cells vs the cells of that row)
@@ -196,10 +196,10 @@ class TrajectoryGenerator(Node):
         corners = self.compact(cells)
         return [p0] + [self.cell_to_setpoint(c, p1[2]) for c in corners[1:-1]] + [p1]
 
-    def generate_trajectory(self, v_max=5.0, a_max=10.0, dt=0.1):
+    def generate_trajectory(self, v_max=1.0, a_max=1.0, dt=0.1):
         # vertical takeoff to the first target's height, then A* through every target
-        takeoff = [0, 0, self.target_pos[2]]
-        targets = [takeoff, self.target_pos]
+        takeoff = [0, 0, self.target_pos[0][2]]
+        targets = [takeoff] + self.target_pos
         waypoints = [self.current_position, takeoff]
         # pairs the targets in couples (T0,T1), (T1,T2) ...
         for p0, p1 in zip(targets[:-1], targets[1:]):

@@ -1,6 +1,9 @@
 FROM ros:humble-ros-base
 ARG DEBIAN_FRONTEND=noninteractive
-ARG PX4_MSGS_REF=main
+# px4_msgs deve corrispondere al PX4 dell'immagine px4io/px4-sitl-gazebo:latest (main 61907962,
+# 11/09/2026): con px4_msgs piu' recenti cambiano le versioni dei messaggi (es. VehicleStatus v5)
+# e i topic /fmu/out/*_v4 non arrivano piu'. Aggiornare insieme all'immagine PX4.
+ARG PX4_MSGS_REF=57f88be
 ARG XRCE_AGENT_TAG=v2.4.2
 ARG WITH_GZ=1
 
@@ -21,11 +24,16 @@ RUN if [ "$WITH_GZ" = "1" ]; then \
       rm -rf /var/lib/apt/lists/*; \
     fi
 
+# RTAB-Map (graph SLAM RGB-D) + static TF per i frame della camera
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ros-humble-rtabmap-ros ros-humble-tf2-ros \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip3 install --no-cache-dir -U empy==3.3.4 pyros-genmsg setuptools==65.7.0
 
 WORKDIR /deps_ws/src
 RUN git clone --depth 1 --branch ${XRCE_AGENT_TAG} https://github.com/eProsima/Micro-XRCE-DDS-Agent.git \
- && git clone --depth 1 --branch ${PX4_MSGS_REF} https://github.com/PX4/px4_msgs.git
+ && git clone https://github.com/PX4/px4_msgs.git && git -C px4_msgs checkout ${PX4_MSGS_REF}
 WORKDIR /deps_ws
 RUN . /opt/ros/humble/setup.sh && colcon build
 

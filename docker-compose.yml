@@ -8,6 +8,7 @@ services:
       PX4_GZ_WORLD: warehouse_px4
       PX4_PARAM_COM_RC_IN_MODE: "4"
       PX4_PARAM_COM_ARM_ODID: "0"
+      PX4_PARAM_MC_YAWRATE_MAX: "30"   # deg/s
       PX4_PARAM_NAV_DLL_ACT: "0"
       HEADLESS: "1"
       GZ_PARTITION: warehouse
@@ -20,7 +21,7 @@ services:
       - ./gazebo/models/warehouse_line_2:/opt/px4-gazebo/share/gz/models/warehouse_line_2:ro
       - ./gazebo/models/warehouse_line_3:/opt/px4-gazebo/share/gz/models/warehouse_line_3:ro
       - ./gazebo/models/warehouse_zone_4:/opt/px4-gazebo/share/gz/models/warehouse_zone_4:ro
-      # drone: depth-only override of PX4's stock x500_depth (RGB camera removed)
+      # drone: override of PX4's stock x500_depth with a ZED 2i (colour + ideal depth, ZED SDK output)
       - ./gazebo/models/x500_depth:/opt/px4-gazebo/share/gz/models/x500_depth:ro
     devices:
       - /dev/dri:/dev/dri
@@ -36,7 +37,7 @@ services:
       QT_X11_NO_MITSHM: "1"
     volumes:
       - ./ros2_ws/src:/ws/src
-      # immagini salvate da image_saver, visibili sull'host in ./images
+      # cartella condivisa con l'host (./images), es. per copiare fuori rtabmap.db e gli export
       - ./images:/ws/images
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
     devices:

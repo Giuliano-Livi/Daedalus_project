@@ -104,13 +104,13 @@ Per includere anche i bridge della camera:
 ros2 launch daedalus_control sim_bringup.launch.py camera:=true
 ```
 
-Per provare il decollo automatico a un metro, avviare invece:
+Per far volare il drone lungo la traiettoria pianificata (A* tra i target di `trajectory_generator.py`), con la mappatura RTAB-Map, avviare invece:
 
 ```bash
-ros2 launch daedalus_control sim_bringup.launch.py takeoff:=true
+ros2 launch daedalus_control trajectory_following.launch.py slam:=true rviz:=true
 ```
 
-Il nodo `takeoff_1m` acquisisce la posizione iniziale, passa in modalità Offboard, arma il veicolo e mantiene il setpoint a un metro sopra il punto di partenza. **Usare `takeoff:=true` solo con la simulazione PX4 avviata da questo progetto; non collegare questa prova a un drone reale.** Per attivare insieme camera e decollo: `camera:=true takeoff:=true`.
+Il nodo `offboard_control` passa in modalità Offboard, arma il veicolo e segue i setpoint pubblicati da `trajectory_generator`. **Usare questo comando solo con la simulazione PX4 avviata da questo progetto; non collegarlo a un drone reale.**
 
 Il comando `ros2 launch` resta in esecuzione in primo piano. Interromperlo con `Ctrl+C`; per uscire dalla shell del container digitare `exit`. Uscire dalla shell non arresta automaticamente i container della simulazione.
 

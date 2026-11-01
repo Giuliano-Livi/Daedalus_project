@@ -1,26 +1,24 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>daedalus_control</name>
+  <name>daedalus_slam</name>
   <version>0.0.1</version>
-  <description>Bringup per simulazione e hardware</description>
+  <description>SLAM con RTAB-Map: launch, parametri, odometria da PX4 e configurazione RViz</description>
   <maintainer email="giuliano@example.com">giuliano</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <exec_depend>ros_gz_bridge</exec_depend>
-  <exec_depend>daedalus_interfaces</exec_depend>
-  <exec_depend>rviz2</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>px4_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
   <exec_depend>rtabmap_odom</exec_depend>
   <exec_depend>rtabmap_slam</exec_depend>
   <exec_depend>rtabmap_viz</exec_depend>
+  <exec_depend>rviz2</exec_depend>
   <export>
     <build_type>ament_python</build_type>
   </export>

@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import setup
 
-package_name = 'daedalus_control'
+package_name = 'daedalus_trajectories'
 
 setup(
     name=package_name,
@@ -23,9 +23,8 @@ setup(
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
-            'offboard_control = daedalus_control.offboard_control:main',
-            'trajectory_generator = daedalus_control.trajectory_generator:main',
-            'px4_odometry = daedalus_control.px4_odometry:main',
+            'offboard_control = daedalus_trajectories.offboard_control:main',
+            'trajectory_generator = daedalus_trajectories.trajectory_generator:main',
         ],
     },
 )

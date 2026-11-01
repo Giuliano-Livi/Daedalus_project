@@ -9,7 +9,7 @@ Planes and meshes (the floor) are ignored. Only the yaw of the poses is applied.
 Grid: CELL x CELL m cells aligned with the building's outer walls, so the world
 x in [-15, 15], y in [-35, 35] becomes 30 columns x 70 rows.
 
-Outputs (ros2_ws/src/daedalus_control/maps/):
+Outputs (ros2_ws/src/daedalus_trajectories/maps/):
   warehouse_occupancy.pgm + .yaml  ROS map_server / nav2 map (black = occupied)
   warehouse_occupancy.csv          rows = y cells (south -> north), cols = x cells (west -> east),
                                    1 = occupied, 0 = free; cell (i, j) center is
@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WORLD = ROOT / "gazebo/worlds/warehouse_px4.sdf"
 MODELS = ROOT / "gazebo/models"
-OUT = ROOT / "ros2_ws/src/daedalus_control/maps"   # installed with the package: the dev container only sees ros2_ws/src
+OUT = ROOT / "ros2_ws/src/daedalus_trajectories/maps"   # installed with the package: the dev container only sees ros2_ws/src
 NAME = "warehouse_occupancy"
 
 CELL = 0.5                       # cell side (m)

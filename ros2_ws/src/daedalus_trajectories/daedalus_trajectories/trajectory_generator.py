@@ -20,7 +20,7 @@ class TrajectoryGenerator(Node):
 
         # 2D occupancy grid from scripts/gen_occupancy_grid.py: 1 = occupied
         self.grid = np.loadtxt(
-            os.path.join(get_package_share_directory('daedalus_control'), 'maps', 'warehouse_occupancy.csv'),
+            os.path.join(get_package_share_directory('daedalus_trajectories'), 'maps', 'warehouse_occupancy.csv'),
             delimiter=',', dtype=np.uint8)
         self.grid_origin = (-15.0, -35.0)   # world x, y of the grid's south-west corner
         self.grid_res = 0.5                 # cell side (m)

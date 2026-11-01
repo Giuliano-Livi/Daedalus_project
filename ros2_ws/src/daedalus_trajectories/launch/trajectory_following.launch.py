@@ -11,9 +11,9 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     sim_bringup = os.path.join(
-        get_package_share_directory('daedalus_control'), 'launch', 'sim_bringup.launch.py')
+        get_package_share_directory('daedalus_trajectories'), 'launch', 'sim_bringup.launch.py')
     slam = os.path.join(
-        get_package_share_directory('daedalus_control'), 'launch', 'slam.launch.py')
+        get_package_share_directory('daedalus_slam'), 'launch', 'slam.launch.py')
 
     return LaunchDescription([
         # starts the gz bridge (clock, imu, camera) from sim_bringup:
@@ -41,12 +41,12 @@ def generate_launch_description():
             condition=IfCondition(LaunchConfiguration('slam')),
         ),
         Node(
-            package='daedalus_control',
+            package='daedalus_trajectories',
             executable='trajectory_generator',
             output='screen'
         ),
         Node(
-            package='daedalus_control',
+            package='daedalus_trajectories',
             executable='offboard_control',
             output='screen'
         ),

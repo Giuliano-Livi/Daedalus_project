@@ -95,19 +95,19 @@ source install/setup.bash
 Per avviare i bridge dei sensori (IMU e clock) e il nodo ROS, lasciando il drone in attesa dei comandi:
 
 ```bash
-ros2 launch daedalus_control sim_bringup.launch.py
+ros2 launch daedalus_trajectories sim_bringup.launch.py
 ```
 
 Per includere anche i bridge della camera:
 
 ```bash
-ros2 launch daedalus_control sim_bringup.launch.py camera:=true
+ros2 launch daedalus_trajectories sim_bringup.launch.py camera:=true
 ```
 
 Per far volare il drone lungo la traiettoria pianificata (A* tra i target di `trajectory_generator.py`), con la mappatura RTAB-Map, avviare invece:
 
 ```bash
-ros2 launch daedalus_control trajectory_following.launch.py slam:=true rviz:=true
+ros2 launch daedalus_trajectories trajectory_following.launch.py slam:=true rviz:=true
 ```
 
 Il nodo `offboard_control` passa in modalità Offboard, arma il veicolo e segue i setpoint pubblicati da `trajectory_generator`. **Usare questo comando solo con la simulazione PX4 avviata da questo progetto; non collegarlo a un drone reale.**
@@ -188,5 +188,7 @@ Lo script `start` apre una shell ROS per impostazione predefinita. L'opzione `--
 - `docker-compose.yml` orchestra PX4/Gazebo, il container ROS di sviluppo e l'agente Micro XRCE-DDS.
 - `docker/ros/Dockerfile` prepara l'immagine basata su ROS 2 Humble e installa Gazebo Harmonic e le dipendenze PX4/ROS.
 - `gazebo/worlds/warehouse_px4.sdf` e `gazebo/models/` contengono il mondo e i modelli del magazzino.
-- `ros2_ws/src/daedalus_control/` contiene il launch file e il nodo di decollo a un metro.
+- `ros2_ws/src/daedalus_trajectories/` contiene la pianificazione della traiettoria (A*), il controllo Offboard di PX4 e i launch file della simulazione.
+- `ros2_ws/src/daedalus_slam/` contiene la mappatura con RTAB-Map (launch, parametri, odometria da PX4).
+- `ros2_ws/src/daedalus_interfaces/` contiene il messaggio `FlightSetpoint`.
 - `scripts/start.sh` gestisce avvio, stato, GUI e arresto dell'ambiente.

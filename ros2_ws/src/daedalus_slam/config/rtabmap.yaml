@@ -1,0 +1,42 @@
+# Parametri dei nodi RTAB-Map (launch/slam.launch.py).
+# I parametri della libreria RTAB-Map (es. RGBD/LinearUpdate) vanno scritti come stringhe.
+
+# comuni a rgbd_odometry, rtabmap e rtabmap_viz
+/**:
+  ros__parameters:
+    use_sim_time: true
+    frame_id: base_link
+    subscribe_depth: true
+    subscribe_rgb: true
+    # colore e depth sono due sensori gz distinti: sync approssimato
+    approx_sync: true
+    approx_sync_max_interval: 0.02
+    wait_for_transform: 0.2
+    # drone: 6DoF completi
+    Reg/Force3DoF: "false"
+
+# odometria visuale, solo con odom:=visual
+/rgbd_odometry:
+  ros__parameters:
+    odom_frame_id: odom
+    publish_tf: true
+    Vis/MinInliers: "15"
+    # persa (es. muro senza texture davanti) -> reset al frame successivo: rtabmap apre una
+    # nuova sessione di mappa e la riaggancia alla vecchia alla prima loop closure
+    Odom/ResetCountdown: "1"
+
+# graph SLAM
+/rtabmap/rtabmap:
+  ros__parameters:
+    map_frame_id: map
+    # nuovo nodo nel grafo ogni 10 cm o ~6 gradi
+    RGBD/LinearUpdate: "0.1"
+    RGBD/AngularUpdate: "0.1"
+    RGBD/ProximityBySpace: "true"
+    Vis/MinInliers: "15"
+    # mappa di occupazione dalla depth (/rtabmap/grid_prob_map 2D, /rtabmap/cloud_map 3D)
+    Grid/FromDepth: "true"
+    Grid/RangeMax: "8.0"
+    Grid/CellSize: "0.1"
+    # Mem/IncrementalMemory e Mem/InitWMWithAllNodes (mapping / localizzazione) li imposta il
+    # launch: un valore qui, specifico del nodo, avrebbe la precedenza su quello del launch

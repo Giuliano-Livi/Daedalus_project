@@ -9,7 +9,7 @@
   Resolution VGA 672x376 (lightest ZED mode), HFOV ~101 deg (rectified images; the 110 deg of
   the datasheet is the unrectified lens), colour + depth 15 Hz.
   Sensor names are kept (color_camera / depth_camera), so the bridge topics don't change.
-  Topics: see daedalus_control/launch/sim_bringup.launch.py.
+  Topics: see daedalus_trajectories/launch/sim_bringup.launch.py.
 -->
 <sdf version='1.9'>
   <model name='x500_depth'>

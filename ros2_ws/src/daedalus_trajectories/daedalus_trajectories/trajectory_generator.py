@@ -15,7 +15,7 @@ class TrajectoryGenerator(Node):
         super().__init__('trajectory_generator')
         self.x_setpoint = 0
         self.current_position = [0,0,0]
-        self.target_pos = [[0,54.5,3], [7.6, 54.5, 3], [7.6, -4.5, 3], [16.2, -4.5, 3], [16.2, 54.5, 3], [0,54.5,3], [0,0,3]]
+        self.target_pos = [[0,54.5,3], [7.6, 54.5, 3], [7.6, -4.5, 3], [16.2, -4.5, 3], [16.2, 54.5, 3], [7.6, 54.5, 3], [7.6, -4.5, 3], [0,0,3]] # [16.2, 54.5, 3], [0,54.5,3], [0,0,3], [7.6, -4.5, 3], [0,0,3]]
         self.des_yaw = math.pi/2
 
         # 2D occupancy grid from scripts/gen_occupancy_grid.py: 1 = occupied
@@ -45,10 +45,18 @@ class TrajectoryGenerator(Node):
         self.grid = np.max([padded[r + di:r + di + h, r + dj:r + dj + w]
                             for di in range(-r, r + 1) for dj in range(-r, r + 1)], axis=0)
 
+        # smooth trajectory: corners rounded instead of stopping at every waypoint
+        self.blend_radius = 1.5                  # m: a corner is rounded from up to this far before to after it
+        self.stop_angle = math.radians(120)      # turns sharper than this (path reversals) stop at the corner
+        self.yaw_lead = 1.0                      # m: face the path direction this far ahead (turn before the corner)
+        self.yaw_rate_max = math.radians(25)     # below PX4's MC_YAWRATE_MAX (30 deg/s, docker-compose.yml)
+        self.ds = 0.02                           # m: resolution of the path used to build the speed profile
+
         self.pos_traj = []
         self.vel_traj = []
         self.acc_traj = []
         self.yaw_traj = []
+        self.yaw_rate_traj = []
         self.step_of_traj = 0
         self.trajectory_generated = False
 
@@ -77,11 +85,11 @@ class TrajectoryGenerator(Node):
             vx, vy, vz = self.vel_traj[self.step_of_traj]
             ax, ay, az = self.acc_traj[self.step_of_traj]
             setpoint.yaw = self.yaw_traj[self.step_of_traj]
+            setpoint.yaw_rate = self.yaw_rate_traj[self.step_of_traj]
             self.step_of_traj += 1
             setpoint.position = Point(x=float(x), y=float(y), z=float(z))
             setpoint.velocity = Vector3(x=float(vx), y=float(vy), z=float(vz))
             setpoint.acceleration = Vector3(x=float(ax), y=float(ay), z=float(az))
-            setpoint.yaw_rate = 0.0
             self.setpoint_pub.publish(setpoint)
         else:
             x, y, z = self.pos_traj[-1]
@@ -196,6 +204,102 @@ class TrajectoryGenerator(Node):
         corners = self.compact(cells)
         return [p0] + [self.cell_to_setpoint(c, p1[2]) for c in corners[1:-1]] + [p1]
 
+    def smooth_path(self, waypoints, stops):
+        # dense path (one point every ~ds m) through the waypoints, each corner replaced by a
+        # quadratic Bezier from blend_radius before to blend_radius after it (control point = the
+        # corner, so the path stays tangent to both segments and passes ~0.35 * radius from a 90 deg
+        # corner); returns points, curvature and stop flags (start, end, `stops` indices of
+        # waypoints, reversals sharper than stop_angle)
+        pts, stp = [np.asarray(waypoints[0], float)], [True]
+        for k, p in enumerate(waypoints[1:], 1):
+            p = np.asarray(p, float)
+            if np.linalg.norm(p - pts[-1]) > 1e-6:      # skip repeated waypoints
+                pts.append(p)
+                stp.append(k in stops)
+            else:
+                stp[-1] = stp[-1] or k in stops
+        stp[-1] = True
+        n = len(pts)
+        r = [0.0] * n                                   # blend radius of every corner, 0 = sharp
+        for i in range(1, n - 1):
+            d_in, d_out = pts[i] - pts[i - 1], pts[i + 1] - pts[i]
+            l_in, l_out = np.linalg.norm(d_in), np.linalg.norm(d_out)
+            angle = math.acos(np.clip(d_in @ d_out / (l_in * l_out), -1.0, 1.0))
+            if stp[i] or angle > self.stop_angle:
+                stp[i] = True
+            elif angle > 1e-3:
+                r[i] = min(self.blend_radius, 0.45 * l_in, 0.45 * l_out)   # blends never overlap
+
+        P, K, S = [pts[0]], [0.0], [True]
+        for i in range(1, n):
+            d = (pts[i] - pts[i - 1]) / np.linalg.norm(pts[i] - pts[i - 1])
+            start, end = pts[i - 1] + d * r[i - 1], pts[i] - d * r[i]       # straight part
+            m = max(1, math.ceil(np.linalg.norm(end - start) / self.ds))
+            for j in range(1, m + 1):
+                P.append(start + (end - start) * j / m)
+                K.append(0.0)
+                S.append(False)
+            if r[i] == 0.0:                             # sharp: stop at the corner (or the end)
+                S[-1] = stp[i]
+                continue
+            A, C = end, pts[i]
+            B = C + (pts[i + 1] - C) / np.linalg.norm(pts[i + 1] - C) * r[i]
+            m = max(2, math.ceil(2 * r[i] / self.ds))
+            for j in range(1, m + 1):
+                t = j / m
+                d1 = 2 * (1 - t) * (C - A) + 2 * t * (B - C)
+                d2 = 2 * (A - 2 * C + B)
+                P.append((1 - t) ** 2 * A + 2 * (1 - t) * t * C + t ** 2 * B)
+                K.append(np.linalg.norm(np.cross(d1, d2)) / np.linalg.norm(d1) ** 3)
+                S.append(False)
+        return np.array(P), np.array(K), np.array(S)
+
+    def speed_profile(self, P, K, S, v_max, a_max):
+        # speed along the dense path: v_max on straights, limited on curves by the lateral
+        # acceleration (v^2 k <= a_max) and the yaw rate (v k <= yaw_rate_max), 0 at the stops;
+        # then forward / backward passes so |dv/dt| <= a_max
+        ds = np.linalg.norm(np.diff(P, axis=0), axis=1)
+        with np.errstate(divide='ignore'):
+            v = np.minimum(v_max, np.minimum(np.sqrt(a_max / K), self.yaw_rate_max / K))
+        v[S] = 0.0
+        for i in range(1, len(v)):
+            v[i] = min(v[i], math.sqrt(v[i - 1] ** 2 + 2 * a_max * ds[i - 1]))
+        for i in range(len(v) - 2, -1, -1):
+            v[i] = min(v[i], math.sqrt(v[i + 1] ** 2 + 2 * a_max * ds[i]))
+        return v, ds
+
+    def time_piece(self, P, v, ds, a_max, dt):
+        # one rest-to-rest piece sampled every dt: positions, velocities, accelerations and the
+        # yaw to face (direction of the path yaw_lead m ahead, NaN where it is vertical)
+        vs = v[:-1] + v[1:]
+        dts = np.where(vs > 1e-6, 2 * ds / np.maximum(vs, 1e-6), np.sqrt(4 * ds / a_max))
+        t = np.concatenate([[0.0], np.cumsum(dts)])
+        tang = np.diff(P, axis=0) / ds[:, None]
+        tang = np.vstack([tang, tang[-1:]])
+        horiz = np.hypot(tang[:, 0], tang[:, 1])
+        head = np.where(horiz > 0.1, np.arctan2(tang[:, 1], tang[:, 0]), np.nan)
+        s = np.concatenate([[0.0], np.cumsum(ds)])
+        ahead = head[np.minimum(np.searchsorted(s, s + self.yaw_lead), len(s) - 1)]
+        head = np.where(np.isnan(ahead), head, ahead)
+        valid = np.flatnonzero(~np.isnan(head))
+        if len(valid):                                  # fill vertical parts, then unwrap
+            head = np.interp(np.arange(len(head)), valid, np.unwrap(head[valid]))
+        tt = np.append(np.arange(dt, t[-1] - 1e-9, dt), t[-1])
+        k = np.clip(np.searchsorted(t, tt) - 1, 0, len(t) - 2)
+        f = ((tt - t[k]) / np.maximum(t[k + 1] - t[k], 1e-9))[:, None]
+        pos = P[k] * (1 - f) + P[k + 1] * f
+        vel = tang[k] * (v[k] * (1 - f[:, 0]) + v[k + 1] * f[:, 0])[:, None]
+        acc = np.gradient(vel, dt, axis=0) if len(tt) > 1 else np.zeros_like(vel)
+        yaw = head[k] * (1 - f[:, 0]) + head[k + 1] * f[:, 0] if len(valid) else np.full(len(tt), np.nan)
+        return pos, vel, acc, yaw
+
+    def append_setpoint(self, p, v, a, yaw, yaw_rate):
+        self.pos_traj.append(list(p))
+        self.vel_traj.append(list(v))
+        self.acc_traj.append(list(a))
+        self.yaw_traj.append(math.atan2(math.sin(yaw), math.cos(yaw)))
+        self.yaw_rate_traj.append(yaw_rate)
+
     def generate_trajectory(self, v_max=1.0, a_max=1.0, dt=0.1):
         # vertical takeoff to the first target's height, then A* through every target
         takeoff = [0, 0, self.target_pos[0][2]]
@@ -206,23 +310,35 @@ class TrajectoryGenerator(Node):
             waypoints += self.plan_path(p0, p1)[1:] # [1:] to avoid repeating the takeoff point twice
         self.get_logger().info(f'A*: {len(waypoints)} waypoints: {[[round(v, 2) for v in p] for p in waypoints]}')
 
-        for i, (p0, p1) in enumerate(zip(waypoints[:-1], waypoints[1:])):
-            L = math.dist(p0, p1)
-            T = max(1.875 * L / v_max, math.sqrt(5.77 * L / a_max), dt)   # from the limits
-            c = [self.quintic(p0[k], 0, 0, p1[k], 0, 0, T) for k in range(3)]
-            if math.dist(p0[:2], p1[:2]) > 1e-6:                          # face the direction of the segment (kept on vertical ones)
-                self.des_yaw = math.atan2(p1[1] - p0[1], p1[0] - p0[0])
-
-            n = int(round(T / dt))
-            ts = np.linspace(0.1, T, n + 1)        # exact samples, last one = T
-
-            for t in ts:                           # t never exceeds T
-                (x, vx, ax), (y, vy, ay), (z, vz, az) = (self.sample(ck, t) for ck in c)
-                self.pos_traj.append([x, y, z])
-                self.vel_traj.append([vx, vy, vz])
-                self.acc_traj.append([ax, ay, az])
-                self.yaw_traj.append(self.des_yaw)
-
+        # one smooth trajectory instead of stopping at every waypoint: rounded corners, speed kept
+        # through them; it stops only after the vertical takeoff, at path reversals and at the end
+        P, K, S = self.smooth_path(waypoints, stops={1})
+        v, ds = self.speed_profile(P, K, S, v_max, a_max)
+        stops = np.flatnonzero(S)
+        yaw, step = self.des_yaw, self.yaw_rate_max * dt
+        for i0, i1 in zip(stops[:-1], stops[1:]):
+            pos, vel, acc, head = self.time_piece(P[i0:i1 + 1], v[i0:i1 + 1], ds[i0:i1], a_max, dt)
+            first = head[~np.isnan(head)]
+            if len(first):                              # at a stop: turn in place to the new direction
+                turn = math.atan2(math.sin(first[0] - yaw), math.cos(first[0] - yaw))
+                n = math.ceil(abs(turn) / (0.6 * step))  # cosine profile: peak rate ~0.94 * yaw_rate_max
+                for j in range(1, n + 1):
+                    y = yaw + turn * (1 - math.cos(math.pi * j / n)) / 2
+                    rate = turn * math.pi / (2 * n * dt) * math.sin(math.pi * j / n)
+                    self.append_setpoint(P[i0], [0, 0, 0], [0, 0, 0], y, rate)
+                yaw += turn
+            for k in range(len(pos)):                   # fly, facing yaw_lead m ahead (rate limited)
+                if not np.isnan(head[k]):
+                    err = math.atan2(math.sin(head[k] - yaw), math.cos(head[k] - yaw))
+                    d = max(-step, min(step, err))
+                else:
+                    d = 0.0
+                yaw += d
+                self.append_setpoint(pos[k], vel[k], acc[k], yaw, d / dt)
+        self.des_yaw = yaw
+        self.get_logger().info(
+            f'smooth trajectory: {len(self.pos_traj) * dt:.1f} s, {len(stops) - 2} stops '
+            f'(takeoff + reversals), {np.sum(ds):.1f} m')
         self.trajectory_generated = True
 
 

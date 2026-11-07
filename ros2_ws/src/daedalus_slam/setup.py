@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'px4_odometry = daedalus_slam.px4_odometry:main',
+            'vision_to_px4 = daedalus_slam.vision_to_px4:main',
         ],
     },
 )

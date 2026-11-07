@@ -8,8 +8,8 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from tf2_ros import TransformBroadcaster
 
 # NED -> ENU (swap x/y, flip z) and FRD -> FLU (flip y, z); both are their own inverse
-NED_TO_ENU = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]], dtype=float)
-FRD_TO_FLU = np.diag([1.0, -1.0, -1.0])
+ned_to_enu = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]], dtype=float)
+frd_to_flu = np.diag([1.0, -1.0, -1.0])
 
 
 def quat_to_rot(w, x, y, z):
@@ -44,14 +44,16 @@ class Px4Odometry(Node):
 
     def __init__(self):
         super().__init__('px4_odometry')
-        self.odom_frame = self.declare_parameter('odom_frame_id', 'odom').value
-        self.base_frame = self.declare_parameter('base_frame_id', 'base_link').value
-        self.publish_tf = self.declare_parameter('publish_tf', True).value
+        self.odom_frame = 'odom'
+        self.base_frame = 'base_link'
+        self.publish_tf = True
 
         self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
         self.tf_pub = TransformBroadcaster(self)
         self.create_subscription(
-            VehicleOdometry, '/fmu/out/vehicle_odometry', self.update_odometry,
+            VehicleOdometry, 
+            '/fmu/out/vehicle_odometry', 
+            self.update_odometry,
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT))
 
     def update_odometry(self, msg):
@@ -60,17 +62,17 @@ class Px4Odometry(Node):
         # stamp with ROS (sim) time on arrival: same clock as the camera images
         stamp = self.get_clock().now().to_msg()
 
-        p = NED_TO_ENU @ np.asarray(msg.position, dtype=float)
-        R = NED_TO_ENU @ quat_to_rot(*msg.q) @ FRD_TO_FLU          # base_link (FLU) -> odom (ENU)
+        p = ned_to_enu @ np.asarray(msg.position, dtype=float)
+        R = ned_to_enu @ quat_to_rot(*msg.q) @ frd_to_flu         # base_link (FLU) -> odom (ENU)
         qw, qx, qy, qz = rot_to_quat(R)
 
         # twist in base_link, as nav_msgs/Odometry expects
         v = np.asarray(msg.velocity, dtype=float)
         if msg.velocity_frame == VehicleOdometry.VELOCITY_FRAME_NED:
-            v = R.T @ (NED_TO_ENU @ v)
+            v = R.T @ (ned_to_enu @ v)
         else:                                                     # already in body FRD
-            v = FRD_TO_FLU @ v
-        w = FRD_TO_FLU @ np.asarray(msg.angular_velocity, dtype=float)
+            v = frd_to_flu @ v
+        w = frd_to_flu @ np.asarray(msg.angular_velocity, dtype=float)
 
         odom = Odometry()
         odom.header.stamp = stamp

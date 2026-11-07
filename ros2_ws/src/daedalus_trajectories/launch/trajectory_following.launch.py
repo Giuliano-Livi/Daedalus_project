@@ -7,6 +7,7 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -24,10 +25,15 @@ def generate_launch_description():
         DeclareLaunchArgument('rtabmap_viz', default_value='true'),
         DeclareLaunchArgument('rviz', default_value='false'),
         DeclareLaunchArgument('odom', default_value='px4'),
+        # rumore realistico ZED 2i sulle immagini della camera
+        DeclareLaunchArgument('camera_noise', default_value='false'),
+        # setpoint corretti con le loop closure di rtabmap (TF map -> odom): utile senza GPS, dove il
+        # frame di PX4 deriva; con il GPS non serve
+        DeclareLaunchArgument('slam_correction', default_value='false'),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(sim_bringup),
-            launch_arguments={'camera': 'true'}.items(),
+            launch_arguments={'camera': 'true', 'camera_noise': LaunchConfiguration('camera_noise')}.items(),
             condition=IfCondition(LaunchConfiguration('bridge')),
         ),
         IncludeLaunchDescription(
@@ -48,6 +54,7 @@ def generate_launch_description():
         Node(
             package='daedalus_trajectories',
             executable='offboard_control',
+            parameters=[{'slam_correction': ParameterValue(LaunchConfiguration('slam_correction'), value_type=bool)}],
             output='screen'
         ),
     ])

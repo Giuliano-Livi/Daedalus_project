@@ -19,6 +19,9 @@
   <exec_depend>tf2_ros</exec_depend>
   <!-- trajectory_following.launch.py include slam.launch.py (slam:=true) -->
   <exec_depend>daedalus_slam</exec_depend>
+  <!-- sim_bringup.launch.py: camera_noise:=true (+ point_cloud_xyz con pointcloud:=true) -->
+  <exec_depend>daedalus_camera</exec_depend>
+  <exec_depend>rtabmap_util</exec_depend>
   <export>
     <build_type>ament_python</build_type>
   </export>

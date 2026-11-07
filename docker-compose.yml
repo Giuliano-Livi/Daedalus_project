@@ -10,6 +10,17 @@ services:
       PX4_PARAM_COM_ARM_ODID: "0"
       PX4_PARAM_MC_YAWRATE_MAX: "30"   # deg/s
       PX4_PARAM_NAV_DLL_ACT: "0"
+      # sorgente di posizione dell'EKF2: GPS (default) o visione (scripts/start.sh --no-gps, che
+      # imposta le variabili sotto; la visione arriva da daedalus_slam/vision_to_px4 con odom:=visual)
+      PX4_PARAM_SYS_HAS_GPS: "${PX4_SYS_HAS_GPS:-1}"
+      PX4_PARAM_EKF2_GPS_CTRL: "${PX4_EKF2_GPS_CTRL:-7}"   # 7 = lat/lon + quota + velocita'
+      PX4_PARAM_EKF2_HGT_REF: "${PX4_EKF2_HGT_REF:-1}"     # 1 = GPS, 0 = barometro
+      PX4_PARAM_EKF2_EV_CTRL: "${PX4_EKF2_EV_CTRL:-0}"     # bit 0 pos. orizzontale, 1 verticale, 2 velocita'
+      # il client DDS di PX4 timbra la visione all'arrivo: ritardo immagine -> PX4 (~60 ms odometria
+      # + ~30 ms camera_noise)
+      PX4_PARAM_EKF2_EV_DELAY: "${PX4_EKF2_EV_DELAY:-0}"
+      # declinazione: il magnetometro simulato da PX4 ha ~0 deg (misurato a drone fermo verso nord:
+      # componente est ~0), il default EKF2_MAG_DECL = 0 e' gia' giusto anche senza GPS
       HEADLESS: "1"
       GZ_PARTITION: warehouse
     stdin_open: true
@@ -21,6 +32,14 @@ services:
       - ./gazebo/models/warehouse_line_2:/opt/px4-gazebo/share/gz/models/warehouse_line_2:ro
       - ./gazebo/models/warehouse_line_3:/opt/px4-gazebo/share/gz/models/warehouse_line_3:ro
       - ./gazebo/models/warehouse_zone_4:/opt/px4-gazebo/share/gz/models/warehouse_zone_4:ro
+      # pareti con le facce interne texturizzate (scripts/gen_warehouse_textures.py)
+      - ./gazebo/models/warehouse_walls:/opt/px4-gazebo/share/gz/models/warehouse_walls:ro
+      # pavimento texturizzato con la segnaletica del layout (sostituisce GroundB_01 nel world)
+      - ./gazebo/models/warehouse_floor:/opt/px4-gazebo/share/gz/models/warehouse_floor:ro
+      # tetto a 9 m con travi e arcarecci
+      - ./gazebo/models/warehouse_roof:/opt/px4-gazebo/share/gz/models/warehouse_roof:ro
+      # lampade LED + tutte le luci in un solo modello (un'unica entita' nella GUI)
+      - ./gazebo/models/warehouse_lights:/opt/px4-gazebo/share/gz/models/warehouse_lights:ro
       # drone: override of PX4's stock x500_depth with a ZED 2i (colour + ideal depth, ZED SDK output)
       - ./gazebo/models/x500_depth:/opt/px4-gazebo/share/gz/models/x500_depth:ro
     devices:
@@ -35,8 +54,11 @@ services:
       # finestre (RViz2) sul desktop dell'host
       DISPLAY: ${DISPLAY:-:0}
       QT_X11_NO_MITSHM: "1"
+      # shared memory grande per le immagini (vedi docker/ros/fastdds.xml)
+      FASTRTPS_DEFAULT_PROFILES_FILE: /etc/fastdds.xml
     volumes:
       - ./ros2_ws/src:/ws/src
+      - ./docker/ros/fastdds.xml:/etc/fastdds.xml:ro
       # cartella condivisa con l'host (./images), es. per copiare fuori rtabmap.db e gli export
       - ./images:/ws/images
       - /tmp/.X11-unix:/tmp/.X11-unix:ro

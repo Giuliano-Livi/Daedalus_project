@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Fast DDS per i nodi ROS 2 del container dev (docker-compose.yml, FASTRTPS_DEFAULT_PROFILES_FILE).
+     La shared memory di default ha segmenti da 512 KB: le immagini della camera (~0.75-1 MB) passano
+     allora da UDP frammentato e le ritrasmissioni bloccano i subscriber per 0.3-0.6 s (rgbd_odometry
+     scendeva da 15 a 3-6 Hz). Con segmenti da 16 MB restano in shared memory; UDP serve ancora per
+     gli altri container (agent PX4). -->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>shm_large</transport_id>
+      <type>SHM</type>
+      <segment_size>16777216</segment_size>
+    </transport_descriptor>
+    <transport_descriptor>
+      <transport_id>udp</transport_id>
+      <type>UDPv4</type>
+    </transport_descriptor>
+  </transport_descriptors>
+  <participant profile_name="default_participant" is_default_profile="true">
+    <rtps>
+      <userTransports>
+        <transport_id>shm_large</transport_id>
+        <transport_id>udp</transport_id>
+      </userTransports>
+      <useBuiltinTransports>false</useBuiltinTransports>
+    </rtps>
+  </participant>
+</profiles>

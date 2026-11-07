@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>daedalus_camera</name>
+  <version>0.0.2</version>
+  <description>Rumore realistico (ZED 2i) sulle immagini ideali della camera simulata</description>
+  <maintainer email="giuliano@example.com">giuliano</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

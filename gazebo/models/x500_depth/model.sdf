@@ -6,8 +6,10 @@
   and FOV). The real stereo pair is not simulated: depth noise is meant to be added later by a
   ROS node on top of this ideal depth.
   ZED 2i (datasheet): 175.25 x 30.25 x 43.1 mm, 166 g, baseline 120 mm, depth 0.3-20 m.
-  Resolution VGA 672x376 (lightest ZED mode), HFOV ~101 deg (rectified images; the 110 deg of
-  the datasheet is the unrectified lens), colour + depth 15 Hz.
+  Resolution VGA 672x376 (ZED SDK grab_resolution; lightest mode, depth up to ~7 m), HFOV ~101 deg
+  (rectified images; the 110 deg of the datasheet is the unrectified lens), colour + depth 15 Hz.
+  HD720 (1280x720, depth ~14 m) was tried: two 1280x720 cameras at 15 Hz slowed the simulation to
+  RTF ~0.5 and visual odometry to ~7 Hz, and the vision-only flight got worse.
   Sensor names are kept (color_camera / depth_camera), so the bridge topics don't change.
   Topics: see daedalus_trajectories/launch/sim_bringup.launch.py.
 -->

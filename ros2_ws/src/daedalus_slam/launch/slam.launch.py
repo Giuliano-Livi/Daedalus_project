@@ -39,24 +39,41 @@ def _setup(context):
             get_package_share_directory('daedalus_trajectories'), 'launch', 'sim_bringup.launch.py')
         nodes.append(IncludeLaunchDescription(
             PythonLaunchDescriptionSource(sim_bringup),
-            launch_arguments={'camera': 'true'}.items(),
+            launch_arguments={
+                'camera': 'true',
+                'camera_noise': LaunchConfiguration('camera_noise').perform(context),
+            }.items(),
         ))
 
-    if odom == 'px4':
-        # odometria dell'EKF di PX4 (IMU + GPS in SITL), non si perde mai: /odom + TF odom -> base_link
-        nodes.append(Node(
-            package='daedalus_slam',
-            executable='px4_odometry',
-            parameters=[{'use_sim_time': True}],
-            output='screen',
-        ))
-    else:
-        # odometria visuale RGB-D: /odom + TF odom -> base_link
+    # odometria per rtabmap: sempre quella dell'EKF di PX4 (/odom + TF odom -> base_link).
+    # odom:=px4 -> IMU + GPS in SITL; odom:=visual -> IMU + odometria visuale (+ baro, bussola):
+    # quando la visione si perde per poco PX4 prosegue con l'IMU, quindi rtabmap riceve una posa
+    # continua (con l'odometria visuale diretta ogni perdita faceva un reset e una nuova sessione
+    # di mappa staccata dalla precedente)
+    nodes.append(Node(
+        package='daedalus_slam',
+        executable='px4_odometry',
+        parameters=[{'use_sim_time': True}],
+        output='screen',
+    ))
+    if odom == 'visual':
+        # odometria visuale RGB-D su /vo/odom, senza TF (la TF odom -> base_link e' di
+        # px4_odometry). L'IMU del drone (250 Hz, frame base_link) allinea l'odometria alla
+        # gravita' e vincola rollio/beccheggio
         nodes.append(Node(
             package='rtabmap_odom',
             executable='rgbd_odometry',
-            parameters=[config],
-            remappings=remaps,
+            parameters=[config],    # publish_tf false, odom_frame_id vo_odom: rtabmap.yaml
+            remappings=[r for r in remaps if r[0] != 'odom'] + [('odom', '/vo/odom'), ('imu', '/imu/data')],
+            output='screen',
+        ))
+        # e la manda all'EKF di PX4 come external vision: unica sorgente di posizione senza GPS
+        # (scripts/start.sh --no-gps); con il GPS attivo PX4 la ignora (EKF2_EV_CTRL = 0)
+        nodes.append(Node(
+            package='daedalus_slam',
+            executable='vision_to_px4',
+            parameters=[{'use_sim_time': True}],
+            remappings=[('/odom', '/vo/odom')],
             output='screen',
         ))
 
@@ -67,6 +84,25 @@ def _setup(context):
         'Mem/IncrementalMemory': 'false' if localization else 'true',
         'Mem/InitWMWithAllNodes': 'true' if localization else 'false',
     }
+    # nuvola 3D dalla depth (rumorosa), salvata in ogni nodo del grafo: le loop closure trovate
+    # con le immagini vengono rifinite con ICP sulla struttura 3D (Reg/Strategy 2, rtabmap.yaml)
+    nodes.append(Node(
+        package='rtabmap_util',
+        executable='point_cloud_xyz',
+        namespace='rtabmap',
+        parameters=[{
+            'use_sim_time': True,
+            'decimation': 4,       # VGA 672x376 -> 168x94 punti
+            'voxel_size': 0.05,
+            'max_depth': 5.0,      # come Vis/MaxDepth: oltre la depth e' troppo rumorosa
+        }],
+        remappings=[
+            ('depth/image', '/camera/depth/image_raw'),
+            ('depth/camera_info', '/camera/depth/camera_info'),
+            ('cloud', 'scan_cloud'),
+        ],
+        output='screen',
+    ))
     nodes.append(Node(
         package='rtabmap_slam',
         executable='rtabmap',
@@ -105,6 +141,9 @@ def generate_launch_description():
         # avvia bridge gz (clock, imu, camera) + TF della camera da daedalus_trajectories/sim_bringup:
         # false se sim_bringup.launch.py (o trajectory_following) e' gia' in esecuzione
         DeclareLaunchArgument('bridge', default_value='true'),
+        # rumore realistico ZED 2i sulle immagini (solo con bridge:=true, altrimenti lo decide
+        # chi ha avviato sim_bringup)
+        DeclareLaunchArgument('camera_noise', default_value='false'),
         # true: nuova mappa (cancella ~/.ros/rtabmap.db); false: continua la mappa salvata
         DeclareLaunchArgument('new_map', default_value='true'),
         # true: solo localizzazione sulla mappa salvata

@@ -12,6 +12,8 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FlightSetpoint.msg"
+  "msg/ManhattanYaw.msg"
+  "msg/FloorHeight.msg"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

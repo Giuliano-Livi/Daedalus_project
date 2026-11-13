@@ -1,0 +1,42 @@
+%YAML:1.0
+# ZED 2i IMU (Bosch BMI085), simulated in gazebo/models/x500_depth/model.sdf (zed_imu, 250 Hz).
+# Noise = values of the simulation x 2.5: margin for what the filter does not model (discretization,
+# and on the real drone vibrations; to be re-tuned with an Allan variance of the real camera).
+#   simulated: gyro 2.44e-4 rad/s/sqrt(Hz), accel 1.18e-3 m/s^2/sqrt(Hz) (BMI085 datasheet)
+#              bias random walk 2e-5 rad/s^2/sqrt(Hz), 3e-4 m/s^3/sqrt(Hz) (assumed)
+
+imu0:
+  T_i_b:
+    - [1.0, 0.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+  accelerometer_noise_density: 2.95e-3  # [ m / s^2 / sqrt(Hz) ]   ( accel "white noise" )
+  accelerometer_random_walk: 7.5e-4     # [ m / s^3 / sqrt(Hz) ].  ( accel bias diffusion )
+  gyroscope_noise_density: 6.1e-4       # [ rad / s / sqrt(Hz) ]   ( gyro "white noise" )
+  gyroscope_random_walk: 5.0e-5         # [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion )
+  rostopic: /zed/imu/data
+  time_offset: 0.0
+  update_rate: 250.0
+  # ideal axes (no misalignment / scale factors to calibrate)
+  model: "kalibr"
+  Tw:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoGYRO:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Ta:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoACC:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Tg:
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]

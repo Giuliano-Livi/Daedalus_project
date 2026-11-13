@@ -3,8 +3,9 @@
   Project override of PX4's x500_depth (mounted over the image's model by docker-compose.yml):
   x500 + ZED 2i stereo camera, simulated as the output of the ZED SDK, i.e. a rectified
   colour image (left lens) + an ideal depth map pixel-aligned with it (same pose, resolution
-  and FOV). The real stereo pair is not simulated: depth noise is meant to be added later by a
-  ROS node on top of this ideal depth.
+  and FOV). Depth noise is added by a ROS node (daedalus_camera/camera_noise). The right image of
+  the stereo pair is not rendered: daedalus_camera/stereo_synth synthesizes it from colour + depth
+  (one rendered camera less). The ZED's IMU is simulated too (zed_imu, on the camera body).
   ZED 2i (datasheet): 175.25 x 30.25 x 43.1 mm, 166 g, baseline 120 mm, depth 0.3-20 m.
   Resolution VGA 672x376 (ZED SDK grab_resolution; lightest mode, depth up to ~7 m), HFOV ~101 deg
   (rectified images; the 110 deg of the datasheet is the unrectified lens), colour + depth 15 Hz.
@@ -95,6 +96,37 @@
         <!-- same rate as colour: the ZED SDK outputs one depth map per grabbed frame -->
         <update_rate>15</update_rate>
         <visualize>true</visualize>
+      </sensor>
+      <!-- ZED 2i IMU (Bosch BMI085, rigid with the cameras), for visual-inertial odometry; PX4 keeps
+           its own IMU (imu_sensor on base_link). At the centre of the camera body, axes = camera_link.
+           Rate: 250 Hz, the physics rate of the world (max_step_size 0.004), a sensor can't go faster;
+           the real ZED 2i outputs 400 Hz.
+           Noise, per sample at 250 Hz (stddev = density * sqrt(250)), BMI085 datasheet:
+             gyro 0.014 deg/s/sqrt(Hz) = 2.44e-4 rad/s/sqrt(Hz) -> 3.9e-3 rad/s
+             accel 120 ug/sqrt(Hz) = 1.18e-3 m/s^2/sqrt(Hz)   -> 1.9e-2 m/s^2
+           Bias (ASSUMED, no published Allan variance of the ZED 2i: to be replaced with values measured
+           on the real camera):
+             turn-on bias, constant in a run: gyro 2e-3 rad/s, accel 5e-2 m/s^2 (stddev)
+             random walk 2e-5 rad/s^2/sqrt(Hz) (gyro), 3e-4 m/s^3/sqrt(Hz) (accel), as a Gauss-Markov
+             process with tau = 1000 s (>> a flight, so a random walk in practice):
+             stationary stddev = rw * sqrt(tau / 2) -> 4.5e-4 rad/s, 6.7e-3 m/s^2 -->
+      <sensor name="zed_imu" type="imu">
+        <gz_frame_id>zed_imu_link</gz_frame_id>
+        <pose>0 0 0 0 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>250</update_rate>
+        <imu>
+          <angular_velocity>
+            <x><noise type="gaussian"><mean>0</mean><stddev>3.9e-3</stddev><bias_mean>0</bias_mean><bias_stddev>2e-3</bias_stddev><dynamic_bias_stddev>4.5e-4</dynamic_bias_stddev><dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time></noise></x>
+            <y><noise type="gaussian"><mean>0</mean><stddev>3.9e-3</stddev><bias_mean>0</bias_mean><bias_stddev>2e-3</bias_stddev><dynamic_bias_stddev>4.5e-4</dynamic_bias_stddev><dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time></noise></y>
+            <z><noise type="gaussian"><mean>0</mean><stddev>3.9e-3</stddev><bias_mean>0</bias_mean><bias_stddev>2e-3</bias_stddev><dynamic_bias_stddev>4.5e-4</dynamic_bias_stddev><dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time></noise></z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x><noise type="gaussian"><mean>0</mean><stddev>1.9e-2</stddev><bias_mean>0</bias_mean><bias_stddev>5e-2</bias_stddev><dynamic_bias_stddev>6.7e-3</dynamic_bias_stddev><dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time></noise></x>
+            <y><noise type="gaussian"><mean>0</mean><stddev>1.9e-2</stddev><bias_mean>0</bias_mean><bias_stddev>5e-2</bias_stddev><dynamic_bias_stddev>6.7e-3</dynamic_bias_stddev><dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time></noise></y>
+            <z><noise type="gaussian"><mean>0</mean><stddev>1.9e-2</stddev><bias_mean>0</bias_mean><bias_stddev>5e-2</bias_stddev><dynamic_bias_stddev>6.7e-3</dynamic_bias_stddev><dynamic_bias_correlation_time>1000</dynamic_bias_correlation_time></noise></z>
+          </linear_acceleration>
+        </imu>
       </sensor>
     </link>
     <joint name="CameraJoint" type="fixed">

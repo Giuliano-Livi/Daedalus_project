@@ -37,6 +37,27 @@ RUN git clone --depth 1 --branch ${XRCE_AGENT_TAG} https://github.com/eProsima/M
 WORKDIR /deps_ws
 RUN . /opt/ros/humble/setup.sh && colcon build
 
+# evo (valutazione odometria, daedalus_slam/scripts/odom_eval) in un venv: installato nel python di
+# sistema aggiorna numpy a 2.x e rompe scipy/ROS (numpy 1.21 di Ubuntu 22.04)
+RUN apt-get update && apt-get install -y --no-install-recommends python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/evo && /opt/evo/bin/pip install --no-cache-dir evo==1.38.0 \
+    && ln -s /opt/evo/bin/evo_* /usr/local/bin/
+
+# OpenVINS (odometria visuale-inerziale stereo, daedalus_slam odom:=openvins): solo ov_core, ov_init,
+# ov_msckf, in un workspace a parte (entrypoint.sh lo carica dopo /deps_ws)
+ARG OPENVINS_TAG=v2.7
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libceres-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev libboost-date-time-dev \
+      ros-humble-cv-bridge ros-humble-image-transport ros-humble-tf2-geometry-msgs \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /ov_ws/src
+RUN git clone --depth 1 --branch ${OPENVINS_TAG} https://github.com/rpng/open_vins.git
+WORKDIR /ov_ws
+RUN . /opt/ros/humble/setup.sh && colcon build --packages-up-to ov_msckf \
+      --cmake-args -DCMAKE_BUILD_TYPE=Release \
+    && rm -rf build log
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

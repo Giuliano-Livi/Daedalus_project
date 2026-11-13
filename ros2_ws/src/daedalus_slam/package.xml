@@ -5,23 +5,29 @@
   <description>SLAM con RTAB-Map: launch, parametri, odometria da PX4 e configurazione RViz</description>
   <maintainer email="giuliano@example.com">giuliano</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>px4_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>sensor_msgs</depend>
+  <depend>eigen</depend>
+  <!-- vision_to_px4 / manhattan_yaw: ManhattanYaw, FloorHeight -->
+  <depend>daedalus_interfaces</depend>
+  <!-- launch files -->
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>px4_msgs</exec_depend>
-  <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>python3-numpy</exec_depend>
   <exec_depend>rtabmap_odom</exec_depend>
   <exec_depend>rtabmap_slam</exec_depend>
   <!-- point_cloud_xyz: nuvola dalla depth per l'ICP delle loop closure -->
   <exec_depend>rtabmap_util</exec_depend>
   <exec_depend>rtabmap_viz</exec_depend>
   <exec_depend>rviz2</exec_depend>
+  <!-- odom:=openvins: OpenVINS, built in the image in /ov_ws (docker/ros/Dockerfile) -->
+  <exec_depend>ov_msckf</exec_depend>
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

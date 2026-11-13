@@ -5,24 +5,27 @@
   <description>Bringup per simulazione e hardware</description>
   <maintainer email="giuliano@example.com">giuliano</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>px4_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>ament_index_cpp</depend>
+  <depend>eigen</depend>
+  <depend>daedalus_interfaces</depend>
+  <!-- launch files -->
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <exec_depend>ros_gz_bridge</exec_depend>
-  <exec_depend>daedalus_interfaces</exec_depend>
-  <exec_depend>rviz2</exec_depend>
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>px4_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>python3-numpy</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>rviz2</exec_depend>
   <!-- trajectory_following.launch.py include slam.launch.py (slam:=true) -->
   <exec_depend>daedalus_slam</exec_depend>
   <!-- sim_bringup.launch.py: camera_noise:=true (+ point_cloud_xyz con pointcloud:=true) -->
   <exec_depend>daedalus_camera</exec_depend>
   <exec_depend>rtabmap_util</exec_depend>
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

@@ -30,6 +30,12 @@ def generate_launch_description():
         # setpoint corretti con le loop closure di rtabmap (TF map -> odom): utile senza GPS, dove il
         # frame di PX4 deriva; con il GPS non serve
         DeclareLaunchArgument('slam_correction', default_value='false'),
+        # odom:=openvins: test senza visione per PX4, "inizio,durata,..." in s dal decollo (vision_to_px4)
+        DeclareLaunchArgument('dropouts', default_value=''),
+        # odom:=openvins: correzione della prua con la struttura del magazzino (manhattan_yaw)
+        DeclareLaunchArgument('manhattan', default_value='true'),
+        # odom:=openvins: correzione della quota con il pavimento (manhattan_yaw)
+        DeclareLaunchArgument('floor', default_value='true'),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(sim_bringup),
@@ -43,6 +49,9 @@ def generate_launch_description():
                 'rtabmap_viz': LaunchConfiguration('rtabmap_viz'),
                 'rviz': LaunchConfiguration('rviz'),
                 'odom': LaunchConfiguration('odom'),
+                'dropouts': LaunchConfiguration('dropouts'),
+                'manhattan': LaunchConfiguration('manhattan'),
+                'floor': LaunchConfiguration('floor'),
             }.items(),
             condition=IfCondition(LaunchConfiguration('slam')),
         ),

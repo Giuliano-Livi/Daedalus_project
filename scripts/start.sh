@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Avvia l'ambiente: PX4+Gazebo (container), agent DDS, GUI sul PC, shell ROS 2.
-# Uso: scripts/start.sh [start|stop|restart|status] [--no-gui] [--no-shell] [--no-gps]
+# Uso: scripts/start.sh [start|stop|restart|status] [--no-gui] [--no-shell] [--no-gps] [--vio]
 #   --no-gps: PX4 senza GPS, posizione solo dalla visione (lanciare lo SLAM con odom:=visual)
+#   --vio:    PX4 senza GPS e senza bussola, posizione, velocita', quota e yaw da OpenVINS
+#             (lanciare lo SLAM con odom:=openvins)
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -122,6 +124,19 @@ cmd_start() {
     export PX4_SYS_HAS_GPS=0 PX4_EKF2_GPS_CTRL=0 PX4_EKF2_HGT_REF=0 PX4_EKF2_EV_CTRL=5 PX4_EKF2_EV_DELAY=90
     log "PX4 senza GPS: avviare lo SLAM con odom:=visual."
   fi
+  if (( VIO )); then
+    # OpenVINS (stereo + IMU della ZED): EKF2_EV_CTRL=15 posizione orizzontale + verticale + velocita' + yaw,
+    # quota di riferimento dalla visione (il barometro derivava di +0.4 m in un minuto), niente bussola
+    # (in magazzino gli scaffali d'acciaio la disturbano: era lei a dare i 2.7 deg di errore di prua).
+    # Varianze di OpenVINS con minimi 5 cm, 5 cm/s, 0.05 rad (minimo di PX4 per EVA). Ritardo 5 ms: la
+    # posa di OpenVINS e' propagata con l'IMU fino all'ultimo campione (misurato ~0 ms in replay).
+    # Drag: solo quello lineare delle eliche, MCOEF stimato sul volo registrato (fit_drag.py)
+    export PX4_SYS_HAS_GPS=0 PX4_EKF2_GPS_CTRL=0 PX4_EKF2_HGT_REF=3 PX4_EKF2_EV_CTRL=15 PX4_EKF2_EV_DELAY=5
+    export PX4_SYS_HAS_MAG=0 PX4_EKF2_MAG_TYPE=5
+    export PX4_EKF2_EVP_NOISE=0.05 PX4_EKF2_EVV_NOISE=0.05 PX4_EKF2_EVA_NOISE=0.05
+    export PX4_EKF2_DRAG_CTRL=1 PX4_EKF2_MCOEF=0.115 PX4_EKF2_BCOEF_X=0 PX4_EKF2_BCOEF_Y=0
+    log "PX4 senza GPS ne' bussola (VIO): avviare lo SLAM con odom:=openvins."
+  fi
   log "Avvio sim e agent..."
   docker compose up -d sim agent
   wait_for_world
@@ -151,12 +166,13 @@ cmd_status() {
 }
 
 CMD="${1:-start}"; shift || true
-GUI=1; OPEN_SHELL=1; NO_GPS=0
+GUI=1; OPEN_SHELL=1; NO_GPS=0; VIO=0
 for a in "$@"; do
   case "$a" in
     --no-gui)   GUI=0 ;;
     --no-shell) OPEN_SHELL=0 ;;
     --no-gps)   NO_GPS=1 ;;
+    --vio)      VIO=1 ;;
     *) die "Opzione sconosciuta: $a" ;;
   esac
 done

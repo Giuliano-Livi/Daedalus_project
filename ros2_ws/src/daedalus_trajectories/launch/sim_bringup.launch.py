@@ -26,11 +26,14 @@ def _setup(context):
         color = f'{link}/camera_link/sensor/color_camera'
         depth = f'{link}/camera_link/sensor/depth_camera'
         imu = f'{link}/base_link/sensor/imu_sensor/imu'
+        # IMU della ZED 2i (250 Hz, frame zed_imu_link), per l'odometria visuale-inerziale
+        zed_imu = f'{link}/camera_link/sensor/zed_imu/imu'
 
         # (topic Gazebo, topic ROS stabile, tipo ROS, tipo Gazebo)
         bridges = [
             ('/clock', '/clock', 'rosgraph_msgs/msg/Clock', 'gz.msgs.Clock'),
             (imu, '/imu/data', 'sensor_msgs/msg/Imu', 'gz.msgs.IMU'),
+            (zed_imu, '/zed/imu/data', 'sensor_msgs/msg/Imu', 'gz.msgs.IMU'),
         ]
         if camera:
             bridges.extend([
@@ -61,6 +64,12 @@ def _setup(context):
              '--frame-id', 'base_link', '--child-frame-id', 'camera_link'],
             ['--roll', '-1.5707963', '--yaw', '-1.5707963',
              '--frame-id', 'camera_link', '--child-frame-id', 'camera_optical_frame'],
+            # lente destra (immagine di stereo_synth): baseline 12 cm, +x ottico = a destra
+            ['--x', '0.12',
+             '--frame-id', 'camera_optical_frame', '--child-frame-id', 'camera_right_optical_frame'],
+            # IMU della ZED: centro del corpo camera (sensore zed_imu in model.sdf), assi come base_link
+            ['--x', '0.12', '--y', '0', '--z', '0.256',
+             '--frame-id', 'base_link', '--child-frame-id', 'zed_imu_link'],
         ]
         for i, tf_args in enumerate(static_tfs):
             nodes.append(Node(
@@ -72,18 +81,35 @@ def _setup(context):
                 output='screen',
             ))
 
+    if sim and camera:
+        # immagine destra della coppia stereo, sintetizzata da colore + depth ideali (una camera renderizzata
+        # in meno): {ideal}/right/image_raw + /camera/right/camera_info (baseline in P[3])
+        nodes.append(Node(
+            package='daedalus_camera',
+            executable='stereo_synth',
+            parameters=[{'use_sim_time': True}],
+            remappings=[
+                ('color_in', f'{ideal}/color/image_raw'),
+                ('depth_in', f'{ideal}/depth/image_raw'),
+                ('camera_info_in', '/camera/color/camera_info'),
+                ('right_out', f'{ideal}/right/image_raw'),
+                ('right_info_out', '/camera/right/camera_info'),
+            ],
+            output='screen',
+        ))
+
     if sim and camera and noise:
-        # rumore ZED 2i (VGA) su colore e depth, parametri in daedalus_camera/src/camera_noise.cpp.
-        # Un processo per immagine: ognuno ha il suo core
-        for stream in ('color', 'depth'):
+        # rumore ZED 2i (VGA) su colore, depth e immagine destra (rumore indipendente da quella sinistra),
+        # parametri in daedalus_camera/src/camera_noise.cpp. Un processo per immagine: ognuno ha il suo core
+        for stream, kind in (('color', 'color'), ('depth', 'depth'), ('right', 'color')):
             nodes.append(Node(
                 package='daedalus_camera',
                 executable='camera_noise',
                 name=f'camera_noise_{stream}',
-                parameters=[{'use_sim_time': True, 'stream': stream}],
+                parameters=[{'use_sim_time': True, 'stream': kind}],
                 remappings=[
-                    (f'{stream}_in', f'/sim/camera/{stream}/image_raw'),
-                    (f'{stream}_out', f'/camera/{stream}/image_raw'),
+                    (f'{kind}_in', f'/sim/camera/{stream}/image_raw'),
+                    (f'{kind}_out', f'/camera/{stream}/image_raw'),
                 ],
                 output='screen',
             ))

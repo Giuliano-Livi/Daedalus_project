@@ -15,8 +15,8 @@ def _setup(context):
     viz = LaunchConfiguration('rtabmap_viz').perform(context).lower() == 'true'
     rviz = LaunchConfiguration('rviz').perform(context).lower() == 'true'
     odom = LaunchConfiguration('odom').perform(context).lower()
-    if odom not in ('px4', 'visual'):
-        raise RuntimeError(f"odom:={odom} non valido, usare 'px4' o 'visual'")
+    if odom not in ('px4', 'visual', 'openvins'):
+        raise RuntimeError(f"odom:={odom} non valido, usare 'px4', 'visual' o 'openvins'")
 
     share = get_package_share_directory('daedalus_slam')
     # parametri RTAB-Map (frame, sync, aggiornamento del grafo, griglia): config/rtabmap.yaml
@@ -67,12 +67,44 @@ def _setup(context):
             remappings=[r for r in remaps if r[0] != 'odom'] + [('odom', '/vo/odom'), ('imu', '/imu/data')],
             output='screen',
         ))
+    manhattan = odom == 'openvins' and LaunchConfiguration('manhattan').perform(context).lower() == 'true'
+    if odom == 'openvins':
+        # odometria visuale-inerziale stereo (ZED: coppia stereo + IMU) su /vo/odom, stessa interfaccia
+        # di rgbd_odometry (launch/openvins.launch.py)
+        nodes.append(IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'openvins.launch.py'))))
+    floor = odom == 'openvins' and LaunchConfiguration('floor').perform(context).lower() == 'true'
+    if manhattan or floor:
+        # dalla depth: prua rispetto alla struttura ortogonale del magazzino (/manhattan/yaw) e quota sul
+        # pavimento (/floor/height), per vision_to_px4
+        nodes.append(Node(
+            package='daedalus_slam',
+            executable='manhattan_yaw',
+            parameters=[{'use_sim_time': True, 'floor': floor}],
+            output='screen',
+        ))
+    if odom in ('visual', 'openvins'):
         # e la manda all'EKF di PX4 come external vision: unica sorgente di posizione senza GPS
         # (scripts/start.sh --no-gps); con il GPS attivo PX4 la ignora (EKF2_EV_CTRL = 0)
+        # vio: PX4 senza bussola, posizione + velocita' + yaw da OpenVINS (scripts/start.sh --vio);
+        # dropouts: test senza visione, "inizio,durata,..." in s dal decollo
+        dropouts = [float(x) for x in LaunchConfiguration('dropouts').perform(context).split(',') if x.strip()]
         nodes.append(Node(
             package='daedalus_slam',
             executable='vision_to_px4',
-            parameters=[{'use_sim_time': True}],
+            parameters=[{
+                'use_sim_time': True,
+                'mode': 'vio' if odom == 'openvins' else 'rgbd',
+                # prua (NED, 0 = nord) del dock da cui parte il drone: nella simulazione lo spawn guarda a nord
+                'dock_heading': float(LaunchConfiguration('dock_heading').perform(context)),
+                'dropouts': dropouts if dropouts else [0.0, 0.0],
+                # correzione della prua con /manhattan/yaw; manhattan_heading = prua (NED) di un asse del
+                # magazzino (scaffali): nella simulazione le corsie vanno verso nord
+                'manhattan': manhattan,
+                'manhattan_heading': float(LaunchConfiguration('manhattan_heading').perform(context)),
+                # correzione della quota con /floor/height
+                'floor': floor,
+            }],
             remappings=[('/odom', '/vo/odom')],
             output='screen',
         ))
@@ -149,9 +181,19 @@ def generate_launch_description():
         # true: solo localizzazione sulla mappa salvata
         DeclareLaunchArgument('localization', default_value='false'),
         DeclareLaunchArgument('rtabmap_viz', default_value='true'),
-        # sorgente dell'odometria: 'px4' (EKF di PX4) o 'visual' (rgbd_odometry di RTAB-Map)
+        # sorgente dell'odometria visiva per l'EKF di PX4: 'px4' (nessuna, PX4 con GPS), 'visual'
+        # (rgbd_odometry di RTAB-Map) o 'openvins' (VIO stereo con l'IMU della ZED)
         DeclareLaunchArgument('odom', default_value='px4'),
         # RViz2 con la mappa in costruzione (rviz/slam.rviz)
         DeclareLaunchArgument('rviz', default_value='false'),
+        # odom:=openvins: prua del dock (gradi NED) e test senza visione ("inizio,durata,..." s dal decollo)
+        DeclareLaunchArgument('dock_heading', default_value='0.0'),
+        DeclareLaunchArgument('dropouts', default_value=''),
+        # odom:=openvins: prua assoluta dalla struttura ortogonale del magazzino (manhattan_yaw), e prua
+        # (gradi NED) degli assi del magazzino
+        DeclareLaunchArgument('manhattan', default_value='true'),
+        DeclareLaunchArgument('manhattan_heading', default_value='0.0'),
+        # odom:=openvins: quota assoluta dal pavimento visto nella depth (manhattan_yaw)
+        DeclareLaunchArgument('floor', default_value='true'),
         OpaqueFunction(function=_setup),
     ])

@@ -19,6 +19,18 @@ services:
       # il client DDS di PX4 timbra la visione all'arrivo: ritardo immagine -> PX4 (~60 ms odometria
       # + ~30 ms camera_noise)
       PX4_PARAM_EKF2_EV_DELAY: "${PX4_EKF2_EV_DELAY:-0}"
+      # scripts/start.sh --vio (OpenVINS): niente bussola, yaw e quota dalla visione, varianze di OpenVINS
+      # con questi minimi, modello di drag del multirotore (MCOEF da scripts/odom_eval/fit_drag.py).
+      # Senza --vio restano i default di PX4
+      PX4_PARAM_SYS_HAS_MAG: "${PX4_SYS_HAS_MAG:-1}"
+      PX4_PARAM_EKF2_MAG_TYPE: "${PX4_EKF2_MAG_TYPE:-0}"                # 5 = nessuna fusione del magnetometro
+      PX4_PARAM_EKF2_EVP_NOISE: "${PX4_EKF2_EVP_NOISE:-0.1}"             # m
+      PX4_PARAM_EKF2_EVV_NOISE: "${PX4_EKF2_EVV_NOISE:-0.1}"             # m/s
+      PX4_PARAM_EKF2_EVA_NOISE: "${PX4_EKF2_EVA_NOISE:-0.1}"             # rad
+      PX4_PARAM_EKF2_DRAG_CTRL: "${PX4_EKF2_DRAG_CTRL:-0}"
+      PX4_PARAM_EKF2_MCOEF: "${PX4_EKF2_MCOEF:-0.15}"                    # 1/s
+      PX4_PARAM_EKF2_BCOEF_X: "${PX4_EKF2_BCOEF_X:-100}"                 # kg/m^2, 0 = drag quadratico spento
+      PX4_PARAM_EKF2_BCOEF_Y: "${PX4_EKF2_BCOEF_Y:-100}"
       # declinazione: il magnetometro simulato da PX4 ha ~0 deg (misurato a drone fermo verso nord:
       # componente est ~0), il default EKF2_MAG_DECL = 0 e' gia' giusto anche senza GPS
       HEADLESS: "1"

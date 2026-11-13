@@ -1,0 +1,38 @@
+%YAML:1.0
+# ZED 2i stereo pair (simulated, daedalus_camera/stereo_synth) seen from the ZED IMU (zed_imu_link).
+# IMU frame: FLU (x forward, y left, z up), at the centre of the camera body (gazebo/models/x500_depth).
+# Camera frames: optical (x right, y down, z forward), at the left / right lens.
+# T_imu_cam = [R_CtoI p_CinI], from the static TFs of daedalus_trajectories/sim_bringup.launch.py:
+#   base_link -> zed_imu_link            (0.12, 0, 0.256)
+#   base_link -> camera_link (left lens) (0.135, 0.06, 0.256)    -> p_CinI left  = (0.015, +0.06, 0)
+#   right lens 0.12 m to the right of the left one              -> p_CinI right = (0.015, -0.06, 0)
+#   R_CtoI: columns = camera x, y, z in the IMU frame = (0,-1,0), (0,0,-1), (1,0,0)
+# Intrinsics: /camera/color/camera_info (VGA 672x376, HFOV 1.77 rad), ideal pinhole (rectified pair, no
+# distortion); the right camera has the same intrinsics.
+
+cam0:
+  T_imu_cam:
+    - [0.0, 0.0, 1.0, 0.015]
+    - [-1.0, 0.0, 0.0, 0.06]
+    - [0.0, -1.0, 0.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: [1]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [274.9465, 274.9466, 336.0, 188.0] #fu, fv, cu, cv
+  resolution: [672, 376]
+  rostopic: /camera/color/image_raw
+cam1:
+  T_imu_cam:
+    - [0.0, 0.0, 1.0, 0.015]
+    - [-1.0, 0.0, 0.0, -0.06]
+    - [0.0, -1.0, 0.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: [0]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [274.9465, 274.9466, 336.0, 188.0] #fu, fv, cu, cv
+  resolution: [672, 376]
+  rostopic: /camera/right/image_raw
